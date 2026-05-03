@@ -3,7 +3,7 @@
 > An intelligent financial analysis dashboard powered by NLP, LangGraph, and Claude Haiku.
 
 **Built by Srikonda Karthik**
-MBA — Business Analytics | Woxsen University
+MBA - Business Analytics | Woxsen University
 Subject: NLP for Customer & Market Insights
 
 ---
@@ -62,24 +62,24 @@ Streamlit Dashboard
 FinSight AI demonstrates a three-layer NLP architecture:
 
 ### Layer 1 — Classical NLP
-- **Tokenization** — splitting headlines into individual tokens
-- **Stopword Removal** — filtering noise words using a domain-aware stopword list
-- **POS Tagging** — part-of-speech classification of financial terms
-- **Term Frequency Analysis** — keyword extraction from news headlines
-- **Word Cloud** — visual keyword density from recent news
+- **Tokenization** - splitting headlines into individual tokens
+- **Stopword Removal** - filtering noise words using a domain-aware stopword list
+- **POS Tagging** - part-of-speech classification of financial terms
+- **Term Frequency Analysis** - keyword extraction from news headlines
+- **Word Cloud** - visual keyword density from recent news
 
 ### Layer 2 — Rule-based Sentiment Model
-- **VADER** — Valence Aware Dictionary and sEntiment Reasoner, a lexicon-based model designed for social media and financial news
-- **Confidence Scoring** — probabilistic output per headline
-- **Temporal Analysis** — sentiment distribution over time
+- **VADER** - Valence Aware Dictionary and sEntiment Reasoner, a lexicon-based model designed for social media and financial news
+- **Confidence Scoring** - probabilistic output per headline
+- **Temporal Analysis** - sentiment distribution over time
 
 > **Architectural Note:** The sentiment module is designed to be model-agnostic. In a production environment with dedicated GPU resources, VADER would be replaced with **FinBERT** (ProsusAI/finbert), a BERT transformer fine-tuned on financial corpora that demonstrates superior performance on domain-specific terminology such as *bearish*, *headwinds*, and *earnings miss*. The separation of the sentiment service ensures this upgrade requires only a single file change.
 
 ### Layer 3 — Large Language Models
-- **Claude Haiku** — abstractive summarization of earnings call transcripts
-- **Structured IE** — extraction of management tone, themes, risks, and forward guidance
-- **AI Insights** — streaming financial commentary from KPI data
-- **Investment Recommendation** — AI-generated comparative analysis (compare mode)
+- **Claude Haiku** - abstractive summarization of earnings call transcripts
+- **Structured IE** - extraction of management tone, themes, risks, and forward guidance
+- **AI Insights** - streaming financial commentary from KPI data
+- **Investment Recommendation** - AI-generated comparative analysis (compare mode)
 
 ---
 
@@ -214,8 +214,8 @@ streamlit run ui/dashboard.py
 | Technology | AAPL, MSFT, GOOGL, META, NVDA |
 | Finance | JPM, BAC, C, WFC, MS |
 | Healthcare | JNJ, PFE, MRK, ABBV, UNH |
-| Consumer | AMZN, TSLA, WMT, MCD, NKE |
-| Energy | XOM, CVX, COP, EOG, SLB |
+| Consumer | AMZN, TSLA, WMT, COST, NKE |
+| Energy | XOM, CVX |
 
 Custom tickers can also be entered manually in the sidebar.
 
@@ -242,7 +242,7 @@ This project was developed for the subject **NLP for Customer & Market Insights*
 
 ### Deployment Note on Model Selection
 
-The production deployment uses VADER for sentiment analysis due to memory constraints on the Streamlit Cloud free tier (1GB RAM). FinBERT (ProsusAI/finbert) is architecturally integrated in the codebase and can be activated locally by installing `torch` and `transformers`. This design decision demonstrates awareness of the tradeoff between model accuracy and deployment constraints — a real-world consideration in production NLP systems.
+The production deployment uses VADER for sentiment analysis due to memory constraints on the Streamlit Cloud free tier (1GB RAM). FinBERT (ProsusAI/finbert) is architecturally integrated in the codebase and can be activated locally by installing `torch` and `transformers`. This design decision demonstrates awareness of the tradeoff between model accuracy and deployment constraints - a real-world consideration in production NLP systems.
 
 ---
 
@@ -255,7 +255,7 @@ The production deployment uses VADER for sentiment analysis due to memory constr
 ## 👤 Author
 
 **Srikonda Karthik**
-MBA — Business Analytics
+MBA - Business Analytics
 Woxsen University
 GitHub: [@kart98k](https://github.com/kart98k)
 Email: kartiksrikonda27@gmail.com

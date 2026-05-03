@@ -1,0 +1,13 @@
+
+services:
+  - type: web
+    name: finsight-ai
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: FMP_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    healthCheckPath: /_stcore/health

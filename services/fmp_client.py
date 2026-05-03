@@ -8,21 +8,27 @@ FMP_BASE = "https://financialmodelingprep.com/stable"
 
 def _get_fmp_key() -> str:
     try:
-        return st.secrets.get("FMP_API_KEY", os.environ.get("FMP_API_KEY", ""))
+        val = st.secrets.get("FMP_API_KEY", "")
+        if val:
+            return val
     except Exception:
-        return os.environ.get("FMP_API_KEY", "")
+        pass
+    return os.environ.get("FMP_API_KEY", "")
 
 
 def _get_news_key() -> str:
     try:
-        return st.secrets.get("NEWS_API_KEY", os.environ.get("NEWS_API_KEY", ""))
+        val = st.secrets.get("NEWS_API_KEY", "")
+        if val:
+            return val
     except Exception:
-        return os.environ.get("NEWS_API_KEY", "")
+        pass
+    return os.environ.get("NEWS_API_KEY", "")
 
 
 def _get(endpoint: str, params: dict = {}) -> dict | list:
-    api_key = _get_fmp_key()
-    params  = {**params, "apikey": api_key}
+    api_key  = _get_fmp_key()
+    params   = {**params, "apikey": api_key}
     response = requests.get(f"{FMP_BASE}/{endpoint}", params=params, timeout=10)
     response.raise_for_status()
     data = response.json()
@@ -95,7 +101,6 @@ def get_stock_news(ticker: str, limit: int = 30) -> list:
         if not news_api_key:
             return []
 
-        # Get full company name for better search precision
         try:
             profile      = get_company_profile(ticker)
             company_name = profile.get("companyName", ticker)

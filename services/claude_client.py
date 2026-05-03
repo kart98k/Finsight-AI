@@ -4,11 +4,19 @@ from typing import Generator
 
 
 def _get_anthropic_key() -> str:
+    # Check os.environ first — set by dashboard when user enters key in sidebar
+    env_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if env_key:
+        return env_key
+    # Fall back to st.secrets
     try:
         import streamlit as st
-        return st.secrets.get("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
+        val = st.secrets.get("ANTHROPIC_API_KEY", "")
+        if val:
+            return val
     except Exception:
-        return os.environ.get("ANTHROPIC_API_KEY", "")
+        pass
+    return ""
 
 
 def _build_prompt(ticker: str, kpis: dict) -> str:
@@ -38,7 +46,6 @@ def get_financial_insights(ticker: str, kpis: dict) -> str:
     """Non-streaming version — returns full response as a string."""
     api_key = _get_anthropic_key()
     client  = anthropic.Anthropic(api_key=api_key)
-
     message = client.messages.create(
         model="claude-haiku-4-5",
         max_tokens=300,
@@ -51,7 +58,6 @@ def stream_financial_insights(ticker: str, kpis: dict) -> Generator[str, None, N
     """Streaming version — yields text chunks word by word for st.write_stream."""
     api_key = _get_anthropic_key()
     client  = anthropic.Anthropic(api_key=api_key)
-
     with client.messages.stream(
         model="claude-haiku-4-5",
         max_tokens=300,

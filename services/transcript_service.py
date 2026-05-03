@@ -4,11 +4,19 @@ from datetime import datetime
 
 
 def _get_anthropic_key() -> str:
+    # Check os.environ first — set by dashboard when user enters key in sidebar
+    env_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if env_key:
+        return env_key
+    # Fall back to st.secrets
     try:
         import streamlit as st
-        return st.secrets.get("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
+        val = st.secrets.get("ANTHROPIC_API_KEY", "")
+        if val:
+            return val
     except Exception:
-        return os.environ.get("ANTHROPIC_API_KEY", "")
+        pass
+    return ""
 
 
 def summarize_transcript(ticker: str, transcript: dict) -> dict:
@@ -121,10 +129,10 @@ Be concise and data-driven. Only use information from the transcript."""
         ]
         return lines if lines else [section.strip()] if section.strip() else []
 
-    summary  = extract_section(raw, "SUMMARY:",              "TONE:")
-    tone     = extract_section(raw, "TONE:",                 "KEY THEMES:")
-    guidance = extract_section(raw, "FORWARD GUIDANCE:",     "KEY RISKS MENTIONED:")
-    themes   = extract_bullets(raw, "KEY THEMES:",           "FORWARD GUIDANCE:")
+    summary  = extract_section(raw, "SUMMARY:",           "TONE:")
+    tone     = extract_section(raw, "TONE:",              "KEY THEMES:")
+    guidance = extract_section(raw, "FORWARD GUIDANCE:",  "KEY RISKS MENTIONED:")
+    themes   = extract_bullets(raw, "KEY THEMES:",        "FORWARD GUIDANCE:")
     risks    = extract_bullets(raw, "KEY RISKS MENTIONED:")
 
     return {

@@ -21,6 +21,8 @@ ALL_TICKERS = [ticker for group in TICKER_OPTIONS.values() for ticker in group]
 
 # ── Helper: run LangGraph pipeline with progress bar ──────────────────────────
 def run_analysis(ticker: str, progress_bar=None, status_text=None) -> dict:
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from agent.graph import graph
 
     steps = [
@@ -141,7 +143,7 @@ def render_charts(chart_data: dict, kpis: dict):
         st.plotly_chart(de_ratio_gauge(kpis["debt_to_equity"]), use_container_width=True)
 
 
-# ── Helper: Feature 1 — News Sentiment ────────────────────────────────────────
+# ── Helper: News Sentiment ─────────────────────────────────────────────────────
 def render_sentiment(news_sentiment: dict, ticker: str):
     from ui.charts import (
         sentiment_donut_chart,
@@ -166,7 +168,7 @@ def render_sentiment(news_sentiment: dict, ticker: str):
 
     st.markdown(
         f"**Overall Market Sentiment: {color_icon} {overall}** "
-        f"— based on {aggregate.get('total', 0)} headlines analysed by FinBERT"
+        f"— based on {aggregate.get('total', 0)} headlines analysed by VADER"
     )
 
     m1, m2, m3 = st.columns(3)
@@ -184,7 +186,7 @@ def render_sentiment(news_sentiment: dict, ticker: str):
         if results:
             st.plotly_chart(sentiment_timeline_chart(results), use_container_width=True)
 
-    # ── Feature 3 — Most Positive and Most Negative Headline ──────────────────
+    # ── Most Positive and Most Negative Headline ──────────────────────────────
     if results:
         positive_results = [r for r in results if r["label"] == "positive"]
         negative_results = [r for r in results if r["label"] == "negative"]
@@ -193,15 +195,12 @@ def render_sentiment(news_sentiment: dict, ticker: str):
         worst = max(negative_results, key=lambda x: x.get("confidence", 0)) if negative_results else None
 
         hi_col, lo_col = st.columns(2)
-
         with hi_col:
             with st.container(border=True):
                 st.markdown("**🟢 Most Positive Headline**")
                 if best:
                     st.markdown(f"*\"{best['text']}\"*")
-                    st.caption(
-                        f"FinBERT Confidence: **{best.get('confidence_pct', '')}** · {best.get('date', '')}"
-                    )
+                    st.caption(f"Confidence: **{best.get('confidence_pct', '')}** · {best.get('date', '')}")
                     if best.get("url"):
                         st.markdown(f"[Read article →]({best['url']})")
                 else:
@@ -212,9 +211,7 @@ def render_sentiment(news_sentiment: dict, ticker: str):
                 st.markdown("**🔴 Most Negative Headline**")
                 if worst:
                     st.markdown(f"*\"{worst['text']}\"*")
-                    st.caption(
-                        f"FinBERT Confidence: **{worst.get('confidence_pct', '')}** · {worst.get('date', '')}"
-                    )
+                    st.caption(f"Confidence: **{worst.get('confidence_pct', '')}** · {worst.get('date', '')}")
                     if worst.get("url"):
                         st.markdown(f"[Read article →]({worst['url']})")
                 else:
@@ -246,7 +243,6 @@ def render_sentiment(news_sentiment: dict, ticker: str):
         st.caption("Top keywords extracted from recent news headlines after tokenization and stopword removal.")
 
         wc_fig = news_sentiment.get("wordcloud", None)
-
         if wc_fig is not None:
             col_kw, col_wc = st.columns(2)
             with col_kw:
@@ -296,45 +292,36 @@ def render_sentiment(news_sentiment: dict, ticker: str):
 
     st.divider()
 
-    # ── VADER vs FinBERT Comparison ───────────────────────────────────────────
+    # ── VADER Sentiment Analysis Expander ─────────────────────────────────────
     if comparison:
-        with st.expander("📊 Model Comparison - VADER vs FinBERT"):
+        with st.expander("📊 Sentiment Model VADER Analysis"):
             st.markdown("""
-**Why compare?** VADER is a rule-based general sentiment model.
-FinBERT is a BERT transformer fine-tuned specifically on financial text.
-Financial language is nuanced words like *correction*, *bearish*, *headwinds*
-have negative financial meaning but may score neutral in VADER.
+**VADER (Valence Aware Dictionary and sEntiment Reasoner)** is a rule-based
+sentiment model specifically designed for social media and financial news text.
+It uses a lexicon of words rated for sentiment polarity and intensity.
+Financial language nuances — words like *correction*, *bearish*, *headwinds*,
+*miss*, *beat* — are captured through VADER's financial domain lexicon.
             """)
 
-            st.markdown("| # | Headline | VADER | FinBERT | Match |")
-            st.markdown("|---|---|---|---|---|")
+            st.markdown("| # | Headline | Sentiment | VADER Score |")
+            st.markdown("|---|---|---|---|")
 
-            vader_icons   = {"positive": "🟢 Positive", "negative": "🔴 Negative", "neutral": "🟡 Neutral"}
-            finbert_icons = {"positive": "🟢 Positive", "negative": "🔴 Negative", "neutral": "🟡 Neutral"}
+            icons = {"positive": "🟢 Positive", "negative": "🔴 Negative", "neutral": "🟡 Neutral"}
 
-            agree_count = 0
             for i, row in enumerate(comparison, 1):
-                v     = vader_icons.get(row["vader"],    row["vader"])
-                f     = finbert_icons.get(row["finbert"], row["finbert"])
-                match = "✅" if row["agree"] else "❌"
-                if row["agree"]:
-                    agree_count += 1
-                st.markdown(f"| {i} | {row['headline']} | {v} | {f} | {match} |")
-
-            total     = len(comparison)
-            agree_pct = round(agree_count / total * 100) if total else 0
-            disagree  = total - agree_count
+                v     = icons.get(row["vader"], row["vader"])
+                score = row.get("vader_score", 0)
+                st.markdown(f"| {i} | {row['headline']} | {v} | `{score}` |")
 
             st.divider()
-            a1, a2, a3 = st.columns(3)
-            with a1: st.metric("✅ Agreement",      f"{agree_count}/{total} ({agree_pct}%)")
-            with a2: st.metric("❌ Disagreement",   f"{disagree}/{total}")
-            with a3: st.metric("FinBERT Advantage", "Domain-specific financial vocabulary")
+            total_pos = sum(1 for r in comparison if r["vader"] == "positive")
+            total_neg = sum(1 for r in comparison if r["vader"] == "negative")
+            total_neu = sum(1 for r in comparison if r["vader"] == "neutral")
 
-            st.caption(
-                "Disagreements highlight where FinBERT's financial domain training "
-                "gives it an edge over general-purpose VADER rules."
-            )
+            a1, a2, a3 = st.columns(3)
+            with a1: st.metric("🟢 Positive", total_pos)
+            with a2: st.metric("🔴 Negative", total_neg)
+            with a3: st.metric("🟡 Neutral",  total_neu)
 
 
 # ── Helper: Transcript Analysis ───────────────────────────────────────────────
@@ -399,8 +386,9 @@ def render_transcript(transcript_analysis: dict, ticker: str):
 st.title("📈 FinSight AI")
 
 st.markdown("""
-A financial intelligence dashboard that combines **live market data** with a
-**multi-layer NLP pipeline** to turn raw financials into clear, actionable insights. Built on LangGraph + Claude Haiku.
+Analyse any public company using **real-time financials** and **NLP-powered insights** 
+from VADER news sentiment and earnings call summarization to KPI dashboards and
+competitor comparison. Built on LangGraph + Claude Haiku.
 """)
 
 st.caption("😄 Built by **Srikonda Karthik**")
@@ -508,8 +496,8 @@ if not key_provided:
 elif analyze:
     os.environ["ANTHROPIC_API_KEY"] = anthropic_key
 
-    from services.claude_client   import stream_financial_insights
-    from services.fmp_client      import get_company_profile, get_stock_quote
+    from services.claude_client  import stream_financial_insights
+    from services.fmp_client     import get_company_profile, get_stock_quote
 
     # ══════════════════════════════════════════════════════════════════════════
     # SINGLE TICKER MODE
@@ -532,7 +520,6 @@ elif analyze:
         news_sentiment      = result.get("news_sentiment",      {})
         transcript_analysis = result.get("transcript_analysis", {})
 
-        # Company header with logo and stock price
         profile = get_company_profile(ticker_1)
         quote   = get_stock_quote(ticker_1)
         render_company_header(company_name, ticker_1, profile, quote)
@@ -594,7 +581,6 @@ elif analyze:
         transcript_analysis_1 = result_1.get("transcript_analysis", {})
         transcript_analysis_2 = result_2.get("transcript_analysis", {})
 
-        # Company headers with logo and stock price
         profile_1 = get_company_profile(ticker_1)
         profile_2 = get_company_profile(ticker_2)
         quote_1   = get_stock_quote(ticker_1)

@@ -10,7 +10,7 @@ Subject: NLP for Customer & Market Insights
 
 ## 🌐 Live Demo
 
-[https://finsight-ai.streamlit.app](https://finsight-ai.streamlit.app)
+[https://finsight-ai.streamlit.app](https://finsight-ai-zdeoxfvmkwg8stefkyfnsw.streamlit.app/)
 
 ---
 

@@ -61,21 +61,21 @@ Streamlit Dashboard
 
 FinSight AI demonstrates a three-layer NLP architecture:
 
-### Layer 1 — Classical NLP
+### Layer 1 - Classical NLP
 - **Tokenization** - splitting headlines into individual tokens
 - **Stopword Removal** - filtering noise words using a domain-aware stopword list
 - **POS Tagging** - part-of-speech classification of financial terms
 - **Term Frequency Analysis** - keyword extraction from news headlines
 - **Word Cloud** - visual keyword density from recent news
 
-### Layer 2 — Rule-based Sentiment Model
+### Layer 2 - Rule-based Sentiment Model
 - **VADER** - Valence Aware Dictionary and sEntiment Reasoner, a lexicon-based model designed for social media and financial news
 - **Confidence Scoring** - probabilistic output per headline
 - **Temporal Analysis** - sentiment distribution over time
 
 > **Architectural Note:** The sentiment module is designed to be model-agnostic. In a production environment with dedicated GPU resources, VADER would be replaced with **FinBERT** (ProsusAI/finbert), a BERT transformer fine-tuned on financial corpora that demonstrates superior performance on domain-specific terminology such as *bearish*, *headwinds*, and *earnings miss*. The separation of the sentiment service ensures this upgrade requires only a single file change.
 
-### Layer 3 — Large Language Models
+### Layer 3 - Large Language Models
 - **Claude Haiku** - abstractive summarization of earnings call transcripts
 - **Structured IE** - extraction of management tone, themes, risks, and forward guidance
 - **AI Insights** - streaming financial commentary from KPI data
@@ -248,7 +248,8 @@ The production deployment uses VADER for sentiment analysis due to memory constr
 
 ## 📸 Screenshots
 
-> Add screenshots of your dashboard here after deployment
+> <img width="1919" height="908" alt="Screenshot 2026-05-03 134542" src="https://github.com/user-attachments/assets/f89e7987-33e3-4376-b1ba-d311275bd51f" />
+
 
 ---
 

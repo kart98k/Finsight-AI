@@ -114,7 +114,7 @@ def news_sentiment_node(state: GraphState) -> GraphState:
         )
 
         ticker = state["ticker"]
-        news   = get_stock_news(ticker, limit=30)
+        news   = get_stock_news(ticker, limit=15)
 
         print(f"[Sentiment] Fetched {len(news)} articles for {ticker}")
 
@@ -136,7 +136,7 @@ def news_sentiment_node(state: GraphState) -> GraphState:
             item.get("title") or item.get("text", "")
             for item in news
             if item.get("title") or item.get("text")
-        ][:30]
+        ][:15]
 
         headlines = [h for h in headlines if h and h != "[Removed]"]
 

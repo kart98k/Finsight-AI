@@ -1,5 +1,4 @@
 import os
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 _finbert_pipeline = None
 _finbert_available = None
@@ -16,17 +15,23 @@ def _load_finbert():
 
     try:
         from transformers import pipeline
+        import torch
+
+        # Use CPU explicitly to reduce memory usage
         _finbert_pipeline = pipeline(
             "text-classification",
             model="ProsusAI/finbert",
             tokenizer="ProsusAI/finbert",
             top_k=None,
             truncation=True,
-            max_length=512,
+            max_length=128,        # reduced from 512 to save memory
+            device=-1,             # force CPU
+            batch_size=4,          # small batch to avoid memory spikes
         )
         _finbert_available = True
-        print("[FinBERT] Loaded successfully.")
+        print("[FinBERT] Loaded successfully on CPU.")
         return _finbert_pipeline
+
     except Exception as e:
         _finbert_available = False
         print(f"[FinBERT] Failed to load: {e}. Falling back to VADER.")
@@ -35,10 +40,10 @@ def _load_finbert():
 
 def analyze_with_vader(texts: list) -> list:
     """
-    Rule-based sentiment using VADER.
-    Fast, no model download needed.
-    Returns list of dicts with: text, compound, label, scores
+    Fast rule-based sentiment using VADER.
+    Returns list of dicts with keys: text, compound, label, scores, all, score
     """
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
     analyzer = SentimentIntensityAnalyzer()
     results  = []
 
@@ -72,43 +77,47 @@ def analyze_with_vader(texts: list) -> list:
 def analyze_with_finbert(texts: list) -> list:
     """
     Domain-specific financial sentiment using FinBERT.
-    Falls back to VADER if FinBERT is unavailable.
+    Falls back to VADER if FinBERT is unavailable or fails.
+    Processes in small batches to avoid memory spikes.
     """
     pipe = _load_finbert()
 
-    # Fallback to VADER if FinBERT not available
     if pipe is None:
         print("[Sentiment] Using VADER fallback.")
         return analyze_with_vader(texts)
 
     results = []
-    for text in texts:
-        try:
-            output = pipe(text[:512])
-            scores = output[0] if isinstance(output[0], list) else output
-            best   = max(scores, key=lambda x: x["score"])
 
-            # Normalize label
-            label = best["label"].lower()
-            if label not in ("positive", "negative", "neutral"):
-                label = "neutral"
+    # Process in small batches of 4 to avoid memory spikes
+    batch_size = 4
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        for text in batch:
+            try:
+                output = pipe(text[:256])  # limit text length
+                scores = output[0] if isinstance(output[0], list) else output
+                best   = max(scores, key=lambda x: x["score"])
 
-            all_scores = {
-                item["label"].lower(): item["score"]
-                for item in scores
-            }
+                label = best["label"].lower()
+                if label not in ("positive", "negative", "neutral"):
+                    label = "neutral"
 
-            results.append({
-                "text":  text,
-                "label": label,
-                "score": best["score"],
-                "all":   all_scores,
-            })
+                all_scores = {
+                    item["label"].lower(): item["score"]
+                    for item in scores
+                }
 
-        except Exception as e:
-            print(f"[FinBERT] Error on text: {e}. Using VADER for this item.")
-            vader_result = analyze_with_vader([text])
-            results.append(vader_result[0])
+                results.append({
+                    "text":  text,
+                    "label": label,
+                    "score": best["score"],
+                    "all":   all_scores,
+                })
+
+            except Exception as e:
+                print(f"[FinBERT] Error on text, using VADER: {e}")
+                vader_result = analyze_with_vader([text])
+                results.append(vader_result[0])
 
     return results
 

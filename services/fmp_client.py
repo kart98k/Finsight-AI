@@ -6,8 +6,22 @@ import streamlit as st
 FMP_BASE = "https://financialmodelingprep.com/stable"
 
 
+def _get_fmp_key() -> str:
+    try:
+        return st.secrets.get("FMP_API_KEY", os.environ.get("FMP_API_KEY", ""))
+    except Exception:
+        return os.environ.get("FMP_API_KEY", "")
+
+
+def _get_news_key() -> str:
+    try:
+        return st.secrets.get("NEWS_API_KEY", os.environ.get("NEWS_API_KEY", ""))
+    except Exception:
+        return os.environ.get("NEWS_API_KEY", "")
+
+
 def _get(endpoint: str, params: dict = {}) -> dict | list:
-    api_key = os.environ.get("FMP_API_KEY", "")
+    api_key = _get_fmp_key()
     params  = {**params, "apikey": api_key}
     response = requests.get(f"{FMP_BASE}/{endpoint}", params=params, timeout=10)
     response.raise_for_status()
@@ -57,16 +71,27 @@ def get_company_profile(ticker: str) -> dict:
     return data[0] if isinstance(data, list) else data
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def get_stock_quote(ticker: str) -> dict:
+    """Fetch current stock price and change for the header."""
+    try:
+        data = _get("quote", {"symbol": ticker})
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return {}
+    except Exception:
+        return {}
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_stock_news(ticker: str, limit: int = 30) -> list:
     """
     Fetch recent news headlines using NewsAPI.org.
     Uses precise query with company name + ticker symbol.
     Filters out unrelated articles using keyword matching.
-    Free tier: 100 requests/day at newsapi.org.
     """
     try:
-        news_api_key = os.environ.get("NEWS_API_KEY", "")
+        news_api_key = _get_news_key()
         if not news_api_key:
             return []
 
@@ -77,7 +102,6 @@ def get_stock_news(ticker: str, limit: int = 30) -> list:
         except Exception:
             company_name = ticker
 
-        # Build precise query — exact phrase match forces relevance
         first_word    = company_name.split()[0]
         precise_query = f'"{first_word}" "{ticker}" stock'
 
@@ -87,7 +111,7 @@ def get_stock_news(ticker: str, limit: int = 30) -> list:
                 "q":        precise_query,
                 "language": "en",
                 "sortBy":   "publishedAt",
-                "pageSize": limit * 2,   # fetch extra buffer for filtering
+                "pageSize": limit * 2,
                 "apiKey":   news_api_key,
             },
             timeout=10,
@@ -99,7 +123,6 @@ def get_stock_news(ticker: str, limit: int = 30) -> list:
         if not articles:
             return []
 
-        # Keywords to match against title + description
         keywords = [
             ticker.lower(),
             first_word.lower(),
@@ -112,11 +135,9 @@ def get_stock_news(ticker: str, limit: int = 30) -> list:
             description = item.get("description", "") or ""
             combined    = (title + " " + description).lower()
 
-            # Skip removed or empty articles
             if title == "[Removed]" or not title:
                 continue
 
-            # Keep only articles mentioning the company or ticker
             if any(kw in combined for kw in keywords):
                 filtered.append({
                     "title":         title,
@@ -126,7 +147,6 @@ def get_stock_news(ticker: str, limit: int = 30) -> list:
                     "site":          (item.get("source") or {}).get("name", ""),
                 })
 
-        # Fallback — if filtering removed everything use unfiltered results
         if not filtered:
             filtered = [
                 {
@@ -150,7 +170,6 @@ def get_stock_news(ticker: str, limit: int = 30) -> list:
 def get_earnings_transcript(ticker: str) -> dict:
     """
     Fetch the most recent earnings call transcript.
-    Stable API requires explicit year + quarter params.
     Walks back up to 6 quarters to find the latest available transcript.
     """
     try:
@@ -186,16 +205,5 @@ def get_earnings_transcript(ticker: str) -> dict:
 
         return {}
 
-    except Exception:
-        return {}
-
-@st.cache_data(ttl=300, show_spinner=False)
-def get_stock_quote(ticker: str) -> dict:
-    """Fetch current stock price and change for the header."""
-    try:
-        data = _get("quote", {"symbol": ticker})
-        if isinstance(data, list) and len(data) > 0:
-            return data[0]
-        return {}
     except Exception:
         return {}

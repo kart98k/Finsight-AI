@@ -3,11 +3,19 @@ import anthropic
 from datetime import datetime
 
 
+def _get_anthropic_key() -> str:
+    try:
+        import streamlit as st
+        return st.secrets.get("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
+    except Exception:
+        return os.environ.get("ANTHROPIC_API_KEY", "")
+
+
 def summarize_transcript(ticker: str, transcript: dict) -> dict:
     """
     Use Claude Haiku to extract structured NLP insights from
     an earnings call transcript.
-    Returns a dict with keys: summary, themes, tone, guidance, risks, date, quarter, year
+    Returns a dict with: summary, themes, tone, guidance, risks, date, quarter, year
     """
     if not transcript:
         return {
@@ -40,7 +48,6 @@ def summarize_transcript(ticker: str, transcript: dict) -> dict:
     quarter = quarter or "N/A"
     year    = year    or "N/A"
 
-    # Truncate to avoid token limits — first 4000 chars covers key statements
     content_excerpt = content[:4000] if content else ""
 
     if not content_excerpt:
@@ -55,7 +62,7 @@ def summarize_transcript(ticker: str, transcript: dict) -> dict:
             "year":     year,
         }
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = _get_anthropic_key()
     client  = anthropic.Anthropic(api_key=api_key)
 
     prompt = f"""You are an NLP analyst specializing in financial earnings calls.
@@ -114,10 +121,10 @@ Be concise and data-driven. Only use information from the transcript."""
         ]
         return lines if lines else [section.strip()] if section.strip() else []
 
-    summary  = extract_section(raw, "SUMMARY:",             "TONE:")
-    tone     = extract_section(raw, "TONE:",                "KEY THEMES:")
-    guidance = extract_section(raw, "FORWARD GUIDANCE:",    "KEY RISKS MENTIONED:")
-    themes   = extract_bullets(raw, "KEY THEMES:",          "FORWARD GUIDANCE:")
+    summary  = extract_section(raw, "SUMMARY:",              "TONE:")
+    tone     = extract_section(raw, "TONE:",                 "KEY THEMES:")
+    guidance = extract_section(raw, "FORWARD GUIDANCE:",     "KEY RISKS MENTIONED:")
+    themes   = extract_bullets(raw, "KEY THEMES:",           "FORWARD GUIDANCE:")
     risks    = extract_bullets(raw, "KEY RISKS MENTIONED:")
 
     return {

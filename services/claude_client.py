@@ -3,6 +3,14 @@ import anthropic
 from typing import Generator
 
 
+def _get_anthropic_key() -> str:
+    try:
+        import streamlit as st
+        return st.secrets.get("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
+    except Exception:
+        return os.environ.get("ANTHROPIC_API_KEY", "")
+
+
 def _build_prompt(ticker: str, kpis: dict) -> str:
     return f"""You are a senior financial analyst. Analyze the following KPIs for {ticker} and provide concise insights.
 
@@ -28,7 +36,7 @@ Keep each point under 30 words. Be direct and data-driven."""
 
 def get_financial_insights(ticker: str, kpis: dict) -> str:
     """Non-streaming version — returns full response as a string."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = _get_anthropic_key()
     client  = anthropic.Anthropic(api_key=api_key)
 
     message = client.messages.create(
@@ -41,7 +49,7 @@ def get_financial_insights(ticker: str, kpis: dict) -> str:
 
 def stream_financial_insights(ticker: str, kpis: dict) -> Generator[str, None, None]:
     """Streaming version — yields text chunks word by word for st.write_stream."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = _get_anthropic_key()
     client  = anthropic.Anthropic(api_key=api_key)
 
     with client.messages.stream(
@@ -52,15 +60,13 @@ def stream_financial_insights(ticker: str, kpis: dict) -> Generator[str, None, N
         for text in stream.text_stream:
             yield text
 
+
 def get_investment_recommendation(
     ticker_1: str, kpis_1: dict,
     ticker_2: str, kpis_2: dict,
 ) -> str:
-    """
-    Generate a concise AI investment recommendation comparing two companies.
-    Streamed version handled in dashboard — this returns full string.
-    """
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    """Generate a concise AI investment recommendation comparing two companies."""
+    api_key = _get_anthropic_key()
     client  = anthropic.Anthropic(api_key=api_key)
 
     prompt = f"""You are a senior equity analyst. Compare these two companies and give a clear investment recommendation.
